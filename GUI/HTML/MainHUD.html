@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CERES HUD - Rover Interface</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="../CSS/stylesMAIN_HUD.css" />
+  <link rel="stylesheet" href="../CSS/stylesHUD_ANIMATIONS.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <style>@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap');</style>
+</head>
+
+<body class="main-screen">
+
+  <!-- Fondo estrellado -->
+  <div id="stars"></div>
+  <div id="stars2"></div>
+  <div id="stars3"></div>
+
+  <!-- NAVBAR -->
+  <div class="hud-navbar hidden-navbar" id="navbar">
+    <button class="btn exit-btn" onclick="window.location.href='index.html'">
+      <i class="bi bi-power"></i> Apagar Interfaz
+    </button>
+    <img src="../ASSETS/logoCERES.jpg" alt="CERES Logo" class="hud-logo" />
+    <div class="status-indicator">
+      <i class="bi bi-broadcast-pin"></i> ESP32 Connected
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="main-content">
+    
+    <!-- Columna de widgets -->
+    <div class="widget-column">
+      <div class="widget" data-sensor="voltaje">
+        <h6 class="widget-title">Voltaje</h6>
+        <p class="widget-data">12.6 V</p>
+      </div>
+      <div class="widget" data-sensor="orientacion">
+        <h6 class="widget-title">Orientación</h6>
+        <p class="widget-data">Brújula: N</p>
+      </div>
+      <div class="widget" data-sensor="obstaculos">
+        <h6 class="widget-title">Obstáculos</h6>
+        <p class="widget-data">IR: Libre<br>US: 35cm</p>
+      </div>
+      <div class="widget" data-sensor="color">
+        <h6 class="widget-title">Color</h6>
+        <p class="widget-data">Rojo</p>
+      </div>
+    </div>
+
+    <!-- Modelo del rover -->
+    <div class="model-panel">
+      <div id="rover-model-container" class="interactive-model">
+        <!-- Modelo 3D aquí -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Detalle flotante de sensor -->
+  <div id="sensor-detail-overlay" class="hidden">
+    <div class="sensor-detail-box">
+      <button id="close-detail" class="close-detail">×</button>
+      <div id="sensor-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="../JAVASCRIPT/MainScript.js"></script>
+</body>
+</html>

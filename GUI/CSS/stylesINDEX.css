@@ -1,0 +1,112 @@
+/* CSS/styles.css */
+
+/* ====================================================================== */
+/* INDEX */
+
+body.welcome-screen {
+  background-color: #000;
+  font-family: 'Orbitron', sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+.logo-glow {
+  max-width: 250px;
+  filter: drop-shadow(0 0 20px #c400ff);
+  animation: pulse 2s infinite;
+}
+
+.futuristic-text {
+  color: white;
+  text-shadow: 0 0 5px #c400ff, 0 0 10px #c400ff;
+}
+
+.activate-btn {
+  border: 2px solid #c400ff;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px #c400ff;
+}
+
+.activate-btn:hover {
+  background-color: #c400ff;
+  color: black;
+  box-shadow: 0 0 20px #c400ff, 0 0 30px #c400ff;
+}
+
+/* Fondo animado tipo holograma */
+.planet-overlay {
+  background: url('../ASSETS/planet.gif') no-repeat center center;
+  background-size: contain;
+  position: absolute;
+  bottom: -50px;
+  width: 100%;
+  height: 100%;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* Pulso del logo */
+@keyframes pulse {
+  0% {
+    filter: drop-shadow(0 0 10px #c400ff);
+  }
+  50% {
+    filter: drop-shadow(0 0 25px #c400ff);
+  }
+  100% {
+    filter: drop-shadow(0 0 10px #c400ff);
+  }
+}
+
+/* Animación: pulsación + flotación */
+@keyframes pulse-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.07;
+  }
+  50% {
+    transform: translate(-50%, -52%) scale(1.03);
+    opacity: 0.12;
+  }
+}
+
+/* Fondo con logo grande */
+.logo-background {
+  background-image: url('../ASSETS/logoCERES.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 120vmin; /* Aumenta el tamaño del logo */
+  opacity: 0.15; /* Aumenta la visibilidad */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+  animation: pulse-float 6s ease-in-out infinite;
+}
+
+/* Contenido encima del logo */
+.content-overlay {
+  z-index: 2;
+  position: relative;
+}
+
+/* Fondo de partículas del idex */
+#particles-js {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+}
