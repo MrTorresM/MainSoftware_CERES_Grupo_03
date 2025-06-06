@@ -193,3 +193,180 @@ body, .main-screen {
     height: 250px;
   }
 }
+
+
+
+/* SISTEMA DE NAVEGACION FUTURISTA (BRUJULA) */
+.navigation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 0.6s ease;
+}
+
+.nav-compass-ring {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border: 2px solid #bb86fc;
+  border-radius: 50%;
+  box-shadow: 0 0 25px #bb86fc80;
+  background: radial-gradient(circle, #1c1c2b 40%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.nav-directions {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  font-size: 1.2rem;
+  color: #bb86fc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transform: rotate(0deg);
+}
+.nav-directions span:nth-child(1) { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); }
+.nav-directions span:nth-child(2) { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); }
+.nav-directions span:nth-child(3) { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); }
+.nav-directions span:nth-child(4) { position: absolute; top: 50%; left: 5px; transform: translateY(-50%); }
+
+.nav-needle {
+  position: absolute;
+  width: 4px;
+  height: 80px;
+  background: linear-gradient(to top, #bb86fc, #ffffff);
+  transform-origin: bottom center;
+  transform: rotate(0deg);
+  transition: transform 0.6s ease-in-out;
+  z-index: 10;
+}
+
+.nav-center-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border: 2px solid #bb86fc;
+  border-radius: 50%;
+  z-index: 11;
+  box-shadow: 0 0 10px #bb86fc;
+}
+
+.nav-readout {
+  color: #ffffff;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+
+/* SISTEMA DE DETECCIÓN DE COLOR */
+
+.color-scanner-container {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-sphere {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  animation: pulse-sphere 1.5s infinite ease-in-out;
+  transition: background 0.3s ease;
+}
+
+.color-ring {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px dashed rgba(255, 255, 255, 0.2);
+  animation: rotate-ring 8s linear infinite;
+  pointer-events: none;
+}
+
+.color-info-text {
+  text-align: center;
+  font-size: 1rem;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255,255,255,0.2);
+}
+
+@keyframes pulse-sphere {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+  }
+}
+
+@keyframes rotate-ring {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+/* SISTEMA DE DETECCIÓN DE OBSTACULOS (RADAR)) */
+
+.radar {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #002600 0%, #000 70%);
+  border: 2px solid #00ff80;
+  box-shadow: 0 0 20px #00ff80aa;
+  overflow: hidden;
+}
+
+.radar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #00ff8088 0deg 20deg, transparent 20deg 360deg);
+  animation: sweep 2s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.radar-object {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #00ff00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00ff00aa;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+
+

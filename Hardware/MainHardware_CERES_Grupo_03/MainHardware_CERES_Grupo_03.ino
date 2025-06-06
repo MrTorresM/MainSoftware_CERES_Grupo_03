@@ -1,86 +1,84 @@
 /***********************************************
  * Rover Control System
- * Sensores: Ultrasonido, Infrarrojo, Color, Voltaje
+ * Comunicación: WebSocket con JSON
+ * Sensores: Ultrasonido, Infrarrojo, Color, Voltaje, Magnetómetro
  * Actuadores: Motores DC y Servomotores
  * @authors CERES - Grupo 03
  ***********************************************/
 
-//========================================================
-// CONFIGURACIÓN GENERAL
-//========================================================
-
-//----------------------------------------------------
-// Pines de sensores
-
-// Pines del sensor ultrasonido () - (5V-GND)
-const int PIN_ULTRASONIDO_TRIG = 12;
-const int PIN_ULTRASONIDO_ECHO = 14;
-
-// Pines del sensor infrarrojo () - (3.3V-GND)
-const int PIN_INFRARED = 27;
-
-// Pines del sensor de color FRONTAL () - (3.3V-GND)
-const int PIN_TCS_FRONTAL_S0 = 32;
-const int PIN_TCS_FRONTAL_S1 = 33;
-const int PIN_TCS_FRONTAL_S2 = 25;
-const int PIN_TCS_FRONTAL_S3 = 26;
-const int PIN_TCS_FRONTAL_OUT = 4;
-
-// Pines del sensor de color del SUELO () - (3.3V-GND)
-const int PIN_TCS_SUELO_S0 = 15;
-const int PIN_TCS_SUELO_S1 = 2;
-const int PIN_TCS_SUELO_S2 = 5;
-const int PIN_TCS_SUELO_S3 = 23;
-const int PIN_TCS_SUELO_OUT = 13;
-
-// Pines del sensor de voltaje () (GND)
-const int PIN_SENSOR_VOLTAGE = 35;
-
-/*
-const int PIN_TCS_S0 = 15;
-const int PIN_TCS_S1 = 2;
-const int PIN_TCS_S2 = 4;
-const int PIN_TCS_S3 = 18;
-const int PIN_TCS_OUT = 19;
-*/
-
-//----------------------------------------------------
-// Pines de motores
-const int PIN_MOTOR_LEFT_FORWARD = 16;
-const int PIN_MOTOR_LEFT_BACKWARD = 17;
-const int PIN_MOTOR_RIGHT_FORWARD = 18;
-const int PIN_MOTOR_RIGHT_BACKWARD = 19;
-
-//----------------------------------------------------
-// Pines de servos
-const int PIN_SERVO_ARM = 21;
-const int PIN_SERVO_GRIPPER = 22;
-
-//----------------------------------------------------
-// Parámetros de sensores
-const float DISTANCIA_ALERTA_ULTRASONIDO = 20.0; // centímetros
-const int DETECCION_INFRAROJO_UMBRAL = 500; // valor analógico
-const float NIVEL_BATERIA_CRITICO = 3.3; // voltios
-
-//----------------------------------------------------
-// Definición de comandos de movimiento
-const int MOVER_ADELANTE = 1;
-const int MOVER_ATRAS = 2;
-const int GIRAR_IZQUIERDA = 3;
-const int GIRAR_DERECHA = 4;
-
-//========================================================
-// Librerías
-//========================================================
-
+// ===== INCLUDES ==================================
+#include <WiFi.h>
 #include <ESP32Servo.h>
+#include <Wire.h>
+#include <ArduinoJson.h>
+#include <WebSocketsServer.h>  // ← WebSocket
 
-//========================================================
-// Objetos
-//========================================================
+// ===== CONFIGURACIÓN Wi-Fi ========================
+const char* ssid     = "Pips";
+const char* password = "xdxdxdxd";
 
-Servo servoBrazo;
-Servo servoPinza;
+WebSocketsServer webSocket(81);      // ← WebSocket en puerto 81
+
+// ===== PINES DRV8833 (Motores DC) =================
+static const int AIN1 = 2;
+static const int AIN2 = 4;
+static const int BIN1 = 16;
+static const int BIN2 = 17;
+
+// ===== PINES SERVOS ===============================
+static const int SERVO_A_PIN = 18;
+static const int SERVO_B_PIN = 19;
+
+Servo servoA;
+Servo servoB;
+
+// ===== SENSOR DE COLOR ============================
+#define S0            32
+#define S1            33
+#define S2            25
+#define S3            26
+#define sensorSalida  34
+
+// ===== SENSOR ULTRASÓNICO =========================
+#define TRIG_PIN 14
+#define ECHO_PIN 27
+
+// ===== SENSOR DE VOLTAJE ==========================
+const int sensorPin = 39;
+const float R1 = 30000.0f;
+const float R2 =  7500.0f;
+float calibrationFactor = 1.133f;
+const int   adcResolution   = 4095;
+const float referenceVoltage = 3.3f;
+const int numReadings = 10;
+int   readings[numReadings];
+int   readIndex = 0;
+long  total     = 0;
+float average   = 0.0f;
+float actualVoltage = 0.0f;
+
+// ===== MAGNETÓMETRO ===============================
+#define HMC_ADDR        0x1E
+#define REG_CONF_A      0x00
+#define REG_CONF_B      0x01
+#define REG_MODE        0x02
+#define REG_OUT_X_MSB   0x03
+const float DECLINATION_ANGLE = -8.33f;
+int16_t rawX, rawY, rawZ;
+int16_t minX =  32767, maxX = -32768;
+int16_t minY =  32767, maxY = -32768;
+float   offsetX = 0, offsetY = 0;
+
+// ===== VARIABLES DE COLOR =========================
+int Rojo_Frec  = 0;
+int Verde_Frec = 0;
+int Azul_Frec  = 0;
+
+// ===== PROTOTIPOS =================================
+void readRawMag();
+void readSensors();
+void sendSensorData();
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 
 //========================================================
 // SETUP
@@ -88,273 +86,201 @@ Servo servoPinza;
 
 void setup() {
   Serial.begin(115200);
-  
-  // Configuración de pines
-  pinMode(PIN_ULTRASONIDO_TRIG, OUTPUT);
-  pinMode(PIN_ULTRASONIDO_ECHO, INPUT);
-  pinMode(PIN_INFRARED, INPUT);
-  pinMode(PIN_SENSOR_VOLTAGE, INPUT);
+  delay(500);
 
-  pinMode(PIN_MOTOR_LEFT_FORWARD, OUTPUT);
-  pinMode(PIN_MOTOR_LEFT_BACKWARD, OUTPUT);
-  pinMode(PIN_MOTOR_RIGHT_FORWARD, OUTPUT);
-  pinMode(PIN_MOTOR_RIGHT_BACKWARD, OUTPUT);
+  // ---- Motores y Servos ----
+  pinMode(AIN1, OUTPUT); pinMode(AIN2, OUTPUT);
+  pinMode(BIN1, OUTPUT); pinMode(BIN2, OUTPUT);
+  pararMotores();
+  servoA.attach(SERVO_A_PIN);
+  servoB.attach(SERVO_B_PIN);
+  pararServos();
 
-  servoBrazo.attach(PIN_SERVO_ARM);
-  servoPinza.attach(PIN_SERVO_GRIPPER);
+  // ---- Sensor de Color ----
+  pinMode(S0, OUTPUT); digitalWrite(S0, HIGH);
+  pinMode(S1, OUTPUT); digitalWrite(S1, LOW);
+  pinMode(S2, OUTPUT); pinMode(S3, OUTPUT);
+  pinMode(sensorSalida, INPUT);
+
+  // ---- Sensor Ultrasónico ----
+  pinMode(TRIG_PIN, OUTPUT); digitalWrite(TRIG_PIN, LOW);
+  pinMode(ECHO_PIN, INPUT);
+
+  // ---- Voltaje ----
+  analogReadResolution(12);
+  analogSetPinAttenuation(sensorPin, ADC_11db);
+  for (int i = 0; i < numReadings; i++) readings[i] = 0;
+
+  // ---- I²C y magnetómetro ----
+  Wire.begin(21, 22);
+  Wire.setClock(400000UL);
+  Wire.beginTransmission(HMC_ADDR); Wire.write(REG_CONF_A); Wire.write(0x70); Wire.endTransmission();
+  Wire.beginTransmission(HMC_ADDR); Wire.write(REG_CONF_B); Wire.write(0xA0); Wire.endTransmission();
+
+  // ---- Calibración magnetómetro ----
+  Serial.println("\n> Calibración magnetómetro: gira el módulo 360° durante 10 s");
+  unsigned long start = millis();
+  while (millis() - start < 10000) {
+    readRawMag();
+    minX = min(minX, rawX); maxX = max(maxX, rawX);
+    minY = min(minY, rawY); maxY = max(maxY, rawY);
+    delay(100);
+  }
+  offsetX = (maxX + minX) * 0.5f;
+  offsetY = (maxY + minY) * 0.5f;
+  Serial.print("> Offsets X,Y = "); Serial.print(offsetX); Serial.print(" , "); Serial.println(offsetY);
+  Serial.println("> Calibración finalizada\n");
+
+  // ---- Conexión Wi-Fi ----
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando a Wi-Fi ");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(200); Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("IP local: "); Serial.println(WiFi.localIP());
+
+  // ---- Iniciar WebSocket ----
+  webSocket.begin();                                   // Puerto 81
+  webSocket.onEvent(webSocketEvent);                  // Evento de WebSocket
+  Serial.println("Servidor WebSocket iniciado.");
 }
 
 //========================================================
-// BUCLE PRINCIPAL
+// LOOP
 //========================================================
 
 void loop() {
-
-  //---------------------------------------
-  // Sensor ultrasonido
-
-  
-  float distancia = leerUltrasonido();
-  if (distancia <= DISTANCIA_ALERTA_ULTRASONIDO) {
-    Serial.println("OBSTACULO DETECTADO POR ULTRASONIDO");
-  }
-
-  //---------------------------------------
-  // Sensor infrarrojo
-
-  if (leerInfrarrojo()) {
-    Serial.println("OBSTACULO DETECTADO POR INFRARROJO");
-  }
-
-  
-
-  //---------------------------------------
-  // Sensores de color
-
-  //---- Sensor del suelo
-  //leerColorSuelo(); 
-
-  //---- Sensor de la pinza
-  //leerColorFrontal();
-
-  //---------------------------------------
-  // Sensor de voltaje
-  float voltaje = leerVoltaje();
-  Serial.print("Voltaje actual: ");
-  Serial.println(voltaje);
-
-  if (voltaje <= NIVEL_BATERIA_CRITICO) {
-    Serial.println("NIVEL DE BATERIA CRITICO");
-  }
-
-  //---------------------------------------
-  // Control de motores
-  
-  //int comandoRecibido = MOVER_ADELANTE;
-
-  //-- Ejecuta comando recibido
-  //controlarMovimiento(comandoRecibido);
-  
-  delay(1000); 
+  webSocket.loop();       // Maneja conexiones WebSocket
+  sendSensorData();       // Envía datos JSON en tiempo real
+  delay(200);             // Frecuencia de actualización (ajustable)
 }
 
-//========================================================
-// FUNCIONES DE LECTURA Y ENVIO DE DATOS
-//========================================================
-
-void leerSerial() {
-
-
-}
-
-//========================================================
-// FUNCIONES DE SENSORES
-//========================================================
-
-/**
- * Lee la distancia utilizando el sensor ultrasonido HC-SR04.
- * @return distancia en centímetros.
+// ========================================================
+//  FUNCIONES DE COMUNICACIÓN
+// ========================================================
+/*
+ * Envía los datos de sensores en formato JSON a todos los clientes WebSocket conectados.
  */
-float leerUltrasonido() {
-  digitalWrite(PIN_ULTRASONIDO_TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(PIN_ULTRASONIDO_TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(PIN_ULTRASONIDO_TRIG, LOW);
+void sendSensorData() {
+  readSensors();
 
-  long duracion = pulseIn(PIN_ULTRASONIDO_ECHO, HIGH);
-  float distancia = duracion * 0.034 / 2;
-  return distancia;
+  StaticJsonDocument<256> doc;
+  doc["ultrasonico"] = distanceCM;
+  doc["voltaje"] = actualVoltage;
+  doc["mag_x"] = rawX - offsetX;
+  doc["mag_y"] = rawY - offsetY;
+  doc["color"] = { Rojo_Frec, Verde_Frec, Azul_Frec };
+
+  String output;
+  serializeJson(doc, output);
+  webSocket.broadcastTXT(output);
 }
 
-//-------------------------------------------------------------------
-
-/**
- * Detecta obstáculos usando sensor infrarrojo.
- * @return true si hay obstáculo, false si libre.
+/*
+ * Maneja eventos WebSocket: conexión, mensaje, desconexión.
  */
-bool leerInfrarrojo() {
-  int valor = analogRead(PIN_INFRARED);
-  return valor > DETECCION_INFRAROJO_UMBRAL;
-}
-
-//-------------------------------------------------------------------
-
-/**
- * Lee y muestra los valores de color del sensor de suelo (TCS3200).
- */
-void leerColorSuelo() {
-  // Configura la escala de frecuencia
-  pinMode(PIN_TCS_SUELO_S0, OUTPUT);
-  pinMode(PIN_TCS_SUELO_S1, OUTPUT);
-  digitalWrite(PIN_TCS_SUELO_S0, HIGH);
-  digitalWrite(PIN_TCS_SUELO_S1, HIGH);
-
-  int redFrequency, greenFrequency, blueFrequency;
-
-  // Lee rojo
-  digitalWrite(PIN_TCS_SUELO_S2, LOW);
-  digitalWrite(PIN_TCS_SUELO_S3, LOW);
-  redFrequency = pulseIn(PIN_TCS_SUELO_OUT, LOW);
-
-  // Lee verde
-  digitalWrite(PIN_TCS_SUELO_S2, HIGH);
-  digitalWrite(PIN_TCS_SUELO_S3, HIGH);
-  greenFrequency = pulseIn(PIN_TCS_SUELO_OUT, LOW);
-
-  // Lee azul
-  digitalWrite(PIN_TCS_SUELO_S2, LOW);
-  digitalWrite(PIN_TCS_SUELO_S3, HIGH);
-  blueFrequency = pulseIn(PIN_TCS_SUELO_OUT, LOW);
-
-  Serial.print("Color del suelo -> R: ");
-  Serial.print(redFrequency);
-  Serial.print(" G: ");
-  Serial.print(greenFrequency);
-  Serial.print(" B: ");
-  Serial.println(blueFrequency);
-}
-
-
-//---------
-
-/**
- * Lee y muestra los valores de color del sensor frontal (TCS3200).
- */
-void leerColorFrontal() {
-  // Configura la escala de frecuencia
-  pinMode(PIN_TCS_FRONTAL_S0, OUTPUT);
-  pinMode(PIN_TCS_FRONTAL_S1, OUTPUT);
-  digitalWrite(PIN_TCS_FRONTAL_S0, HIGH);
-  digitalWrite(PIN_TCS_FRONTAL_S1, HIGH);
-
-  int redFrequency, greenFrequency, blueFrequency;
-
-  // Lee rojo
-  digitalWrite(PIN_TCS_FRONTAL_S2, LOW);
-  digitalWrite(PIN_TCS_FRONTAL_S3, LOW);
-  redFrequency = pulseIn(PIN_TCS_SUELO_OUT, LOW);
-
-  // Lee verde
-  digitalWrite(PIN_TCS_FRONTAL_S2, HIGH);
-  digitalWrite(PIN_TCS_FRONTAL_S3, HIGH);
-  greenFrequency = pulseIn(PIN_TCS_SUELO_OUT, LOW);
-
-  // Lee azul
-  digitalWrite(PIN_TCS_FRONTAL_S2, LOW);
-  digitalWrite(PIN_TCS_FRONTAL_S3, HIGH);
-  blueFrequency = pulseIn(PIN_TCS_FRONTAL_OUT, LOW);
-
-  Serial.print("Color del frente -> R: ");
-  Serial.print(redFrequency);
-  Serial.print(" G: ");
-  Serial.print(greenFrequency);
-  Serial.print(" B: ");
-  Serial.println(blueFrequency);
-}
-
-//-------------------------------------------------------------------
-
-/**
- * Lee el voltaje actual de la batería.
- * @return voltaje en voltios.
- */
-float leerVoltaje() {
-  int rawValue = analogRead(PIN_SENSOR_VOLTAGE);
-  float voltage = rawValue * (3.3 / 4095.0); // Ajustar según divisor de voltaje si aplica.
-  return voltage;
-}
-
-//========================================================
-// FUNCIONES DE MOVIMIENTO
-//========================================================
-
-/**
- * Controla el movimiento de los motores DC.
- * @param comando: Dirección basada en las constantes predefinidas.
- */
-void controlarMovimiento(int comando) {
-  switch (comando) {
-    case MOVER_ADELANTE:
-      digitalWrite(PIN_MOTOR_LEFT_FORWARD, HIGH);
-      digitalWrite(PIN_MOTOR_LEFT_BACKWARD, LOW);
-      digitalWrite(PIN_MOTOR_RIGHT_FORWARD, HIGH);
-      digitalWrite(PIN_MOTOR_RIGHT_BACKWARD, LOW);
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
+  switch (type) {
+    case WStype_CONNECTED:
+      Serial.printf("Cliente [%u] conectado\n", num);
       break;
-    case MOVER_ATRAS:
-      digitalWrite(PIN_MOTOR_LEFT_FORWARD, LOW);
-      digitalWrite(PIN_MOTOR_LEFT_BACKWARD, HIGH);
-      digitalWrite(PIN_MOTOR_RIGHT_FORWARD, LOW);
-      digitalWrite(PIN_MOTOR_RIGHT_BACKWARD, HIGH);
+    case WStype_DISCONNECTED:
+      Serial.printf("Cliente [%u] desconectado\n", num);
       break;
-    case GIRAR_IZQUIERDA:
-      digitalWrite(PIN_MOTOR_LEFT_FORWARD, LOW);
-      digitalWrite(PIN_MOTOR_LEFT_BACKWARD, HIGH);
-      digitalWrite(PIN_MOTOR_RIGHT_FORWARD, HIGH);
-      digitalWrite(PIN_MOTOR_RIGHT_BACKWARD, LOW);
-      break;
-    case GIRAR_DERECHA:
-      digitalWrite(PIN_MOTOR_LEFT_FORWARD, HIGH);
-      digitalWrite(PIN_MOTOR_LEFT_BACKWARD, LOW);
-      digitalWrite(PIN_MOTOR_RIGHT_FORWARD, LOW);
-      digitalWrite(PIN_MOTOR_RIGHT_BACKWARD, HIGH);
-      break;
-    default:
-      detenerMotores();
+    case WStype_TEXT:
+      Serial.printf("Mensaje [%u]: %s\n", num, payload);
+      // Aquí podrías leer comandos en JSON entrantes para controlar motores
       break;
   }
 }
 
-//-------------------------------------------------------------------
+// ========================================================
+//  FUNCIONES DE LECTURA
+// ========================================================
+float distanceCM = 0;
 
-/**
- * Detiene todos los motores.
- */
-void detenerMotores() {
-  digitalWrite(PIN_MOTOR_LEFT_FORWARD, LOW);
-  digitalWrite(PIN_MOTOR_LEFT_BACKWARD, LOW);
-  digitalWrite(PIN_MOTOR_RIGHT_FORWARD, LOW);
-  digitalWrite(PIN_MOTOR_RIGHT_BACKWARD, LOW);
+void readSensors() {
+  // --- Ultrasonido ---
+  digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long duracion = pulseIn(ECHO_PIN, HIGH, 30000);
+  distanceCM = duracion * 0.034 / 2;
+
+  // --- Voltaje (promediado) ---
+  total -= readings[readIndex];
+  readings[readIndex] = analogRead(sensorPin);
+  total += readings[readIndex];
+  readIndex = (readIndex + 1) % numReadings;
+  average = total / (float)numReadings;
+  float vOUT = average * referenceVoltage / adcResolution;
+  actualVoltage = vOUT / (R2 / (R1 + R2)) * calibrationFactor;
+
+  // --- Magnetómetro ---
+  readRawMag();
+
+  // --- Color ---
+  digitalWrite(S2, LOW); digitalWrite(S3, LOW); delay(100);
+  Rojo_Frec = pulseIn(sensorSalida, LOW);
+  digitalWrite(S2, HIGH); digitalWrite(S3, HIGH); delay(100);
+  Verde_Frec = pulseIn(sensorSalida, LOW);
+  digitalWrite(S2, LOW); digitalWrite(S3, HIGH); delay(100);
+  Azul_Frec = pulseIn(sensorSalida, LOW);
 }
 
-//========================================================
-// FUNCIONES DEL BRAZO
-//========================================================
-
-/**
- * Mueve el brazo robótico a un ángulo dado.
- * @param angulo: ángulo en grados.
- */
-void moverBrazo(int angulo) {
-  servoBrazo.write(angulo);
+// ========================================================
+//  LECTURA DE MAGNETÓMETRO
+// ========================================================
+void readRawMag() {
+  Wire.beginTransmission(HMC_ADDR);
+  Wire.write(REG_MODE); Wire.write(0x01); Wire.endTransmission();
+  delay(6);
+  Wire.beginTransmission(HMC_ADDR);
+  Wire.write(REG_OUT_X_MSB);
+  Wire.endTransmission(false);
+  Wire.requestFrom(HMC_ADDR, (uint8_t)6);
+  rawX = (Wire.read() << 8) | Wire.read();
+  rawZ = (Wire.read() << 8) | Wire.read();
+  rawY = (Wire.read() << 8) | Wire.read();
 }
 
-/**
- * Abre o cierra la pinza.
- * @param angulo: ángulo de apertura/cierre.
- */
-void controlarPinza(int angulo) {
-  servoPinza.write(angulo);
+// ========================================================
+//  FUNCIONES DE MOTORES Y SERVOS
+// ========================================================
+void pararMotores() {
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, LOW);
 }
-
-//-------------------------------------------------------------------
+void motoresAdelante() {
+  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
+}
+void motoresAtras() {
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, HIGH);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, HIGH);
+}
+void motoresGirarDerecha() {
+  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, LOW);  digitalWrite(BIN2, HIGH);
+}
+void motoresGirarIzquierda() {
+  digitalWrite(AIN1, LOW);  digitalWrite(AIN2, HIGH);
+  digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
+}
+void pararServos() {
+  servoA.writeMicroseconds(1500);
+  servoB.writeMicroseconds(1500);
+}
+void servoAAdelante() {
+  servoA.writeMicroseconds(2000);
+}
+void servoAtras() {
+  servoA.writeMicroseconds(1000);
+}
+void servoBAdelante() {
+  servoB.writeMicroseconds(2000);
+}
+void servoBAtas() {
+  servoB.writeMicroseconds(1000);
+}
