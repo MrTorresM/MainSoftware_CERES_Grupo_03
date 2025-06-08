@@ -8,7 +8,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ease: 'power3.out'
   });
 
-  gsap.to('.center-panel', {
+  gsap.to('.model-panel', {
     opacity: 1,
     y: 0,
     duration: 1.4,
@@ -21,54 +21,119 @@ window.addEventListener('DOMContentLoaded', () => {
     navbar.classList.toggle('visible', e.clientY < 60);
   });
 
-  // THREE.js TEMPORAL
+  // THREE.js CON ROVER MODEL
   const container = document.getElementById('rover-model-container');
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x111111);
 
-  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-  camera.position.set(0, 0, 3);
+// En la configuración inicial de la cámara:
+const camera = new THREE.PerspectiveCamera(
+  35, // Reducir el FOV (field of view) para menos distorsión
+  container.clientWidth / container.clientHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 0.2, 2); // Posición más cercana y centrada
 
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+// En el evento de resize, ajusta el aspect ratio:
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  
+  // Ajusta la posición de la cámara en el resize si es necesario
+  if (container.clientWidth < 600) {
+    camera.position.z = 2.2; // Más cerca en móviles
+  } else {
+    camera.position.z = 2.5; // Valor por defecto
+  }
+});
+
+  const renderer = new THREE.WebGLRenderer({ 
+    alpha: true, 
+    antialias: true,
+    powerPreference: "high-performance"
+  });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 
+  // Iluminación mejorada
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
   scene.add(ambientLight);
-  const directionalLight = new THREE.DirectionalLight(0xbb86fc, 1);
-  directionalLight.position.set(5, 5, 5);
-  scene.add(directionalLight);
+  
+  const directionalLight1 = new THREE.DirectionalLight(0xbb86fc, 1);
+  directionalLight1.position.set(5, 5, 5);
+  scene.add(directionalLight1);
+  
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight2.position.set(-5, 3, 2);
+  scene.add(directionalLight2);
 
-  const geometry = new THREE.BoxGeometry();
-  const material = new THREE.MeshStandardMaterial({ color: 0xbb86fc });
-  const cube = new THREE.Mesh(geometry, material);
-  scene.add(cube);
+  // Cargar modelo del rover
+  const loader = new THREE.GLTFLoader();
+  let roverModel = null;
 
+  loader.load(
+    '../ASSETS/ROVER/rover_model.glb',
+    (gltf) => {
+    const model = gltf.scene;
+    // Ajusta estos valores para hacerlo más pequeño (valores menores a 1)
+model.scale.set(0.4, 0.4, 0.4); // Más pequeño
+model.position.y = -0.2; // Menos desplazamiento vertical
+    scene.add(model);
+    roverModel = model;
+    
+    // Ajusta la posición de la cámara para encuadrar mejor
+    camera.position.set(0, 0.3, 2.5); // Más cerca y ligeramente más bajo
+    camera.lookAt(0, 0, 0);
+    
+    // Animación opcional de escalado suave
+    gsap.from(model.scale, {
+      x: 0.1,
+      y: 0.1,
+      z: 0.1,
+      duration: 1.2,
+      ease: 'elastic.out(1, 0.5)'
+    });
+  },
+    undefined,
+    (error) => {
+      console.error('❌ Error al cargar el modelo del rover:', error);
+      
+      // Crear cubo de respaldo en caso de error
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshStandardMaterial({ color: 0xbb86fc });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+      roverModel = cube;
+    }
+  );
+
+  // Animación continua
   function animate() {
     requestAnimationFrame(animate);
-    cube.rotation.y += 0.01;
-    cube.rotation.x += 0.005;
+    
+    if (roverModel) {
+      roverModel.rotation.y += 0.005;
+    }
+    
     renderer.render(scene, camera);
   }
   animate();
-
 
   // Radar de obstáculos
   function updateRadar(usDistance) {
     const radar = document.getElementById('radar-scope');
     if (!radar) return;
 
-    // Borra obstáculos anteriores
     radar.querySelectorAll('.radar-object').forEach(o => o.remove());
 
-    // Normaliza la distancia (simula máximo 100cm)
     const maxDistance = 100;
     const radius = radar.offsetWidth / 2;
     const clamped = Math.min(usDistance, maxDistance);
     const normalized = clamped / maxDistance;
 
-    // Genera una posición aleatoria dentro del rango visible
     const angle = Math.random() * 2 * Math.PI;
     const r = radius * normalized;
 
@@ -83,120 +148,68 @@ window.addEventListener('DOMContentLoaded', () => {
     radar.appendChild(dot);
   }
 
-
   window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 
-  container.addEventListener('mouseenter', () => container.style.filter = 'drop-shadow(0 0 10px #bb86fc)');
-  container.addEventListener('mouseleave', () => container.style.filter = 'none');
-
-  const overlay = document.getElementById('sensor-detail-overlay');
-  const content = document.getElementById('sensor-detail-content');
-
-  const showAlert = (msg, level = 'info') => {
-    const alert = document.createElement('div');
-    alert.className = `floating-alert alert-${level}`;
-    alert.textContent = msg;
-    document.body.appendChild(alert);
-    setTimeout(() => alert.remove(), 2000);
-  };
-
-  const sensorData = {
-    voltaje: () => {
-      const batteryLevel = 63; // Simulado; reemplazar con datos reales
-      const status = batteryLevel > 90 ? 'Batería óptima' : batteryLevel < 20 ? 'Nivel bajo' : 'Nivel medio';
-      const color = batteryLevel > 50 ? '#4caf50' : batteryLevel > 20 ? '#ff9800' : '#f44336';
-      if (batteryLevel < 20) showAlert(`⚠️ Batería baja: ${batteryLevel}%`, batteryLevel < 10 ? 'danger' : 'warning');
-      return `
-        <h5>Voltaje</h5>
-        <div class="battery-display" style="--battery:${batteryLevel}%;--battery-color:${color}">
-          <div class="battery-shell">
-            <div class="battery-level"></div>
-            <span class="battery-tip"></span>
-          </div>
-          <div class="battery-info">
-            <strong>${batteryLevel}%</strong><br><small>${status}</small>
-          </div>
-        </div>
-        <p class="battery-connection-status">🔋 Batería conectada</p>
-      `;
-    },
-orientacion: () => {
-  return `
-    <h5>Sistema de Navegación</h5>
-    <div class="navigation-container">
-      <div class="nav-compass-ring">
-        <div class="nav-directions">
-          <span>N</span><span>E</span><span>S</span><span>O</span>
-        </div>
-        <div class="nav-needle"></div>
-        <div class="nav-center-dot"></div>
-      </div>
-      <p class="nav-readout">Dirección: <span id="nav-direction-text">N</span></p>
-    </div>
-  `;
-},
-  color: () => {
-    const detectedColor = 'Rojo'; // Simulado, reemplazar con variable si se conecta a sensor real
-    const rgb = 'rgb(255, 0, 0)';
-
-    return `
-      <h5>Sensor de Color</h5>
-      <div class="color-scanner-container">
-        <div class="color-sphere" style="background: ${rgb}; box-shadow: 0 0 20px ${rgb};"></div>
-        <div class="color-ring"></div>
-      </div>
-      <div class="color-info-text">
-        <p><strong>${detectedColor}</strong></p>
-        <p>${rgb}</p>
-      </div>
-    `;
-  },
-    obstaculos: () => {
-      return `
-        <h5>Radar de Obstáculos</h5>
-        <div class="radar" id="radar-scope">
-          <!-- Objetos se agregarán dinámicamente -->
-        </div>
-        <p>Escaneo activo</p>
-      `;
+  container.addEventListener('mouseenter', () => {
+    container.style.filter = 'drop-shadow(0 0 15px #bb86fc)';
+    
+    // Animación al pasar el mouse
+    if (roverModel) {
+      gsap.to(roverModel.scale, {
+        x: 0.85,
+        y: 0.85,
+        z: 0.85,
+        duration: 0.3,
+        ease: 'power2.out'
+      });
     }
-  };
-
-  document.querySelectorAll('.widget').forEach(widget => {
-    widget.classList.add('clickable');
-    const sensor = widget.dataset.sensor;
-    widget.addEventListener('click', () => {
-      const detail = sensorData[sensor]?.() || '<p>Sin datos</p>';
-      content.innerHTML = detail;
-      overlay.classList.remove('hidden');
-      gsap.fromTo('.sensor-detail-box', { scale: 0.85, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
-    });
   });
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target.id === 'sensor-detail-overlay' || e.target.id === 'close-detail') {
-      overlay.classList.add('hidden');
+  
+  container.addEventListener('mouseleave', () => {
+    container.style.filter = 'none';
+    
+    if (roverModel) {
+      gsap.to(roverModel.scale, {
+        x: 0.8,
+        y: 0.8,
+        z: 0.8,
+        duration: 0.5,
+        ease: 'elastic.out(1, 0.5)'
+      });
     }
   });
 
   const socket = new WebSocket('ws://<IP_DEL_ESP32>:81');
   socket.addEventListener('open', () => {
     console.log('🔌 Conectado al WebSocket de ESP32');
-    document.querySelector('.status-indicator').innerHTML = `<i class="bi bi-broadcast-pin"></i> ESP32 Connected`;
+    document.querySelector('.status-indicator').innerHTML = '<i class="bi bi-broadcast-pin"></i> ESP32 Connected';
   });
+  
   socket.addEventListener('message', (event) => {
     try {
       const data = JSON.parse(event.data);
+      
       if (data.voltaje !== undefined) {
-        document.querySelector('[data-sensor="voltaje"] .widget-data').textContent = `${data.voltaje.toFixed(2)} V`;
+        const batteryLevel = Math.min(Math.max(data.voltaje * 10, 0), 100);
+        const status = batteryLevel > 90 ? 'Batería óptima' : batteryLevel < 20 ? 'Nivel bajo' : 'Nivel medio';
+        const color = batteryLevel > 50 ? '#4caf50' : batteryLevel > 20 ? '#ff9800' : '#f44336';
+        
+        const batteryLevelElement = document.querySelector('[data-sensor="voltaje"] .battery-level');
+        const batteryInfoElement = document.querySelector('[data-sensor="voltaje"] .battery-info');
+        
+        if (batteryLevelElement && batteryInfoElement) {
+          batteryLevelElement.style.width = `${batteryLevel}%`;
+          batteryLevelElement.style.backgroundColor = color;
+          batteryInfoElement.innerHTML = `<strong>${batteryLevel}%</strong><br><small>${status}</small>`;
+        }
       }
+      
       if (data.orientacion !== undefined) {
         const dir = data.orientacion;
-        document.querySelector('[data-sensor="orientacion"] .widget-data').textContent = `Brújula: ${dir}`;
         const angle = { N: 0, E: 90, S: 180, O: 270 }[dir] ?? 0;
         
         const needle = document.querySelector('.nav-needle');
@@ -205,23 +218,46 @@ orientacion: () => {
         const readout = document.getElementById('nav-direction-text');
         if (readout) readout.textContent = dir;
       }
+      
       if (data.obstaculos !== undefined) {
         const ir = data.obstaculos.ir;
         const us = data.obstaculos.us;
-        document.querySelector('[data-sensor="obstaculos"] .widget-data').innerHTML = `IR: ${ir}<br>US: ${us} cm`;
-
-        updateRadar(us); // Actualiza el radar visual
+        const obstacleDataElement = document.querySelector('[data-sensor="obstaculos"] .obstacle-data');
+        
+        if (obstacleDataElement) {
+          obstacleDataElement.innerHTML = `IR: ${ir}<br>US: ${us} cm`;
+        }
+        updateRadar(us);
       }
+      
       if (data.color !== undefined) {
-        document.querySelector('[data-sensor="color"] .widget-data').textContent = `${data.color}`;
+        const colorMap = {
+          'Rojo': 'rgb(255, 0, 0)',
+          'Verde': 'rgb(0, 255, 0)',
+          'Azul': 'rgb(0, 0, 255)',
+          'Blanco': 'rgb(255, 255, 255)',
+          'Negro': 'rgb(0, 0, 0)'
+        };
+        
+        const rgb = colorMap[data.color] || 'rgb(255, 255, 255)';
+        const colorSphere = document.querySelector('[data-sensor="color"] .color-sphere');
+        const colorInfoText = document.querySelector('[data-sensor="color"] .color-info-text');
+        
+        if (colorSphere && colorInfoText) {
+          colorSphere.style.background = rgb;
+          colorSphere.style.boxShadow = `0 0 20px ${rgb}`;
+          colorInfoText.innerHTML = `<p><strong>${data.color}</strong></p><p>${rgb}</p>`;
+        }
       }
     } catch (err) {
       console.error("❌ Error al procesar datos del WebSocket:", err);
     }
   });
+  
   socket.addEventListener('close', () => {
     console.warn('⚠️ Conexión cerrada con el ESP32');
-    document.querySelector('.status-indicator').innerHTML = `<i class="bi bi-exclamation-triangle"></i> ESP32 Desconectado`;
+    document.querySelector('.status-indicator').innerHTML = '<i class="bi bi-exclamation-triangle"></i> ESP32 Desconectado';
   });
+  
   socket.addEventListener('error', (err) => console.error('❌ Error en WebSocket:', err));
 });

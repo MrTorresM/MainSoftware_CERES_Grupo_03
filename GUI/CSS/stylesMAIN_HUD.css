@@ -90,8 +90,8 @@ body, .main-screen {
 
 /* WIDGETS */
 .widget {
-  width: 180px;
-  height: 130px;
+  width: 250px;
+  height: 300px;
   background-color: rgba(30, 30, 30, 0.75);
   border: 1px solid #bb86fc;
   border-radius: 16px;
@@ -106,7 +106,6 @@ body, .main-screen {
   opacity: 0;
   transform: translateY(-20px);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
 }
 .widget:hover {
   transform: scale(1.05);
@@ -117,57 +116,18 @@ body, .main-screen {
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
 }
-.widget-data {
-  color: #ffffff;
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-
-/* PANEL DETALLE DE SENSOR */
-#sensor-detail-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
+.widget-detail {
   width: 100%;
   height: 100%;
-  background: rgba(5, 5, 15, 0.85);
-  backdrop-filter: blur(6px);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  z-index: 1000;
+  justify-content: space-around;
 }
-#sensor-detail-overlay.hidden {
-  display: none;
-}
-.sensor-detail-box {
-  background: #1c1c2b;
-  border: 2px solid #bb86fc;
-  border-radius: 20px;
-  padding: 2rem;
-  width: 320px;
-  color: white;
-  position: relative;
-  box-shadow: 0 0 20px #bb86fc80;
-}
-.sensor-detail-box h5 {
+.widget-detail h5 {
   font-size: 1.4rem;
   color: #bb86fc;
-  margin-bottom: 1rem;
-}
-.sensor-detail-box p {
-  font-size: 1rem;
-  line-height: 1.5;
-}
-.close-detail {
-  position: absolute;
-  top: 0.5rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
+  margin-bottom: 0.5rem;
 }
 
 /* RESPONSIVO */
@@ -183,8 +143,8 @@ body, .main-screen {
     gap: 1rem;
   }
   .widget {
-    width: 140px;
-    height: auto;
+    width: 200px;
+    height: 250px;
     padding: 0.75rem;
   }
   .model-panel {
@@ -193,8 +153,6 @@ body, .main-screen {
     height: 250px;
   }
 }
-
-
 
 /* SISTEMA DE NAVEGACION FUTURISTA (BRUJULA) */
 .navigation-container {
@@ -267,7 +225,6 @@ body, .main-screen {
   to { opacity: 1; transform: scale(1); }
 }
 
-
 /* SISTEMA DE DETECCIÓN DE COLOR */
 
 .color-scanner-container {
@@ -286,6 +243,8 @@ body, .main-screen {
   border-radius: 50%;
   animation: pulse-sphere 1.5s infinite ease-in-out;
   transition: background 0.3s ease;
+  background: rgb(255, 0, 0);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
 }
 
 .color-ring {
@@ -309,11 +268,9 @@ body, .main-screen {
 @keyframes pulse-sphere {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
   }
   50% {
     transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
   }
 }
 
@@ -326,9 +283,7 @@ body, .main-screen {
   }
 }
 
-
-
-/* SISTEMA DE DETECCIÓN DE OBSTACULOS (RADAR)) */
+/* SISTEMA DE DETECCIÓN DE OBSTACULOS (RADAR) */
 
 .radar {
   position: relative;
@@ -368,5 +323,59 @@ body, .main-screen {
   pointer-events: none;
 }
 
+/* SISTEMA DE BATERÍA */
+.battery-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
 
+.battery-shell {
+  position: relative;
+  width: 100px;
+  height: 180px;
+  border: 2px solid #bb86fc;
+  border-radius: 10px;
+  background: rgba(30, 30, 30, 0.5);
+  overflow: hidden;
+}
 
+.battery-level {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 63%;
+  background: #4caf50;
+  transition: height 0.5s ease, background 0.5s ease;
+}
+
+.battery-tip {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 8px;
+  background: #bb86fc;
+  border-radius: 3px 3px 0 0;
+}
+
+.battery-info {
+  text-align: center;
+  font-size: 1rem;
+  color: white;
+}
+
+.battery-connection-status {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #bb86fc;
+}
+
+.obstacle-data {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: white;
+}

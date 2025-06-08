@@ -33,39 +33,77 @@
   <!-- CONTENEDOR PRINCIPAL -->
   <div class="main-content">
     
-    <!-- Columna de widgets -->
-    <div class="widget-column">
+    <!-- Columna izquierda: Voltaje y Color -->
+    <div class="widget-column left-column">
+      <!-- Widget Voltaje -->
       <div class="widget" data-sensor="voltaje">
-        <h6 class="widget-title">Voltaje</h6>
-        <p class="widget-data">12.6 V</p>
+        <div class="widget-detail">
+          <h5>Voltaje</h5>
+          <div class="battery-display">
+            <div class="battery-shell">
+              <div class="battery-level"></div>
+              <span class="battery-tip"></span>
+            </div>
+            <div class="battery-info">
+              <strong>63%</strong><br><small>Nivel medio</small>
+            </div>
+          </div>
+          <p class="battery-connection-status">🔋 Batería conectada</p>
+        </div>
       </div>
-      <div class="widget" data-sensor="orientacion">
-        <h6 class="widget-title">Orientación</h6>
-        <p class="widget-data">Brújula: N</p>
-      </div>
-      <div class="widget" data-sensor="obstaculos">
-        <h6 class="widget-title">Obstáculos</h6>
-        <p class="widget-data">IR: Libre<br>US: 35cm</p>
-      </div>
+
+      <!-- Widget Color -->
       <div class="widget" data-sensor="color">
-        <h6 class="widget-title">Color</h6>
-        <p class="widget-data">Rojo</p>
+        <div class="widget-detail">
+          <h5>Sensor de Color</h5>
+          <div class="color-scanner-container">
+            <div class="color-sphere"></div>
+            <div class="color-ring"></div>
+          </div>
+          <div class="color-info-text">
+            <p><strong>Rojo</strong></p>
+            <p>rgb(255, 0, 0)</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Modelo del rover -->
+    <!-- Modelo del rover en el centro -->
     <div class="model-panel">
       <div id="rover-model-container" class="interactive-model">
         <!-- Modelo 3D aquí -->
       </div>
     </div>
-  </div>
 
-  <!-- Detalle flotante de sensor -->
-  <div id="sensor-detail-overlay" class="hidden">
-    <div class="sensor-detail-box">
-      <button id="close-detail" class="close-detail">×</button>
-      <div id="sensor-detail-content"></div>
+    <!-- Columna derecha: Orientación y Obstáculos -->
+    <div class="widget-column right-column">
+      <!-- Widget Orientación -->
+      <div class="widget" data-sensor="orientacion">
+        <div class="widget-detail">
+          <h5>Sistema de Navegación</h5>
+          <div class="navigation-container">
+            <div class="nav-compass-ring">
+              <div class="nav-directions">
+                <span>N</span><span>E</span><span>S</span><span>O</span>
+              </div>
+              <div class="nav-needle"></div>
+              <div class="nav-center-dot"></div>
+            </div>
+            <p class="nav-readout">Dirección: <span id="nav-direction-text">N</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Widget Obstáculos -->
+      <div class="widget" data-sensor="obstaculos">
+        <div class="widget-detail">
+          <h5>Radar de Obstáculos</h5>
+          <div class="radar" id="radar-scope">
+            <!-- Objetos se agregarán dinámicamente -->
+          </div>
+          <p class="obstacle-data">IR: Libre<br>US: 35cm</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -73,5 +111,11 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="../JAVASCRIPT/MainScript.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js"></script>
+
 </body>
 </html>
