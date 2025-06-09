@@ -158,6 +158,24 @@ container.addEventListener('mousemove', (e) => {
   }
 });
 
+
+container.addEventListener('mouseleave', () => {
+  container.style.filter = 'none';
+  useManualControl = false;
+
+  if (roverModel) {
+    gsap.to(roverModel.rotation, {
+      x: 0,
+      y: 0,
+      duration: 1.2,
+      ease: 'power3.out'
+    });
+
+    // Actualiza variable para seguir desde ahí si vuelve a rotarse automáticamente
+    currentYRotation = 0;
+  }
+});
+
   // WebSocket para recibir datos del MPU y otros sensores
   const socket = new WebSocket('ws://<IP_DEL_ESP32>:81');
 

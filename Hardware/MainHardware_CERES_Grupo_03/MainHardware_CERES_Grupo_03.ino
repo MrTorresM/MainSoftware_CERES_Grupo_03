@@ -42,6 +42,7 @@ Servo servoB;
 // ===== SENSOR ULTRASÓNICO =========================
 #define TRIG_PIN 14
 #define ECHO_PIN 27
+float distanceCM = 0;
 
 // ===== SENSOR DE VOLTAJE ==========================
 const int sensorPin = 39;
@@ -170,12 +171,17 @@ void sendSensorData() {
   doc["voltaje"] = actualVoltage;
   doc["mag_x"] = rawX - offsetX;
   doc["mag_y"] = rawY - offsetY;
-  doc["color"] = { Rojo_Frec, Verde_Frec, Azul_Frec };
+
+  JsonArray colorArray = doc.createNestedArray("color");
+  colorArray.add(Rojo_Frec);
+  colorArray.add(Verde_Frec);
+  colorArray.add(Azul_Frec);
 
   String output;
   serializeJson(doc, output);
   webSocket.broadcastTXT(output);
 }
+
 
 /*
  * Maneja eventos WebSocket: conexión, mensaje, desconexión.
@@ -198,7 +204,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 // ========================================================
 //  FUNCIONES DE LECTURA
 // ========================================================
-float distanceCM = 0;
+
 
 void readSensors() {
   // --- Ultrasonido ---
