@@ -14,8 +14,8 @@
 #include <WebSocketsServer.h>  // ← WebSocket
 
 // ===== CONFIGURACIÓN Wi-Fi ========================
-const char* ssid     = "Pips";
-const char* password = "xdxdxdxd";
+const char* ssid     = "CASATOPA";
+const char* password = "madadaniela2009";
 
 WebSocketsServer webSocket(81);      // ← WebSocket en puerto 81
 
@@ -88,6 +88,25 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 void setup() {
   Serial.begin(115200);
   delay(500);
+
+  // Conexion wifi temporal
+
+  /*
+  Serial.println("Iniciando...");
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi conectado");
+  Serial.print("IP local: ");
+  Serial.println(WiFi.localIP());
+  
+  */
+
+
 
   // ---- Motores y Servos ----
   pinMode(AIN1, OUTPUT); pinMode(AIN2, OUTPUT);
@@ -167,15 +186,49 @@ void sendSensorData() {
   readSensors();
 
   StaticJsonDocument<256> doc;
-  doc["ultrasonico"] = distanceCM;
-  doc["voltaje"] = actualVoltage;
-  doc["mag_x"] = rawX - offsetX;
-  doc["mag_y"] = rawY - offsetY;
 
-  JsonArray colorArray = doc.createNestedArray("color");
-  colorArray.add(Rojo_Frec);
-  colorArray.add(Verde_Frec);
-  colorArray.add(Azul_Frec);
+  // Enviar obstáculos
+  JsonObject obstaculos = doc.createNestedObject("obstaculos");
+  obstaculos["us"] = distanceCM;
+  obstaculos["ir"] = distanceCM < 20 ? "Obstáculo" : "Libre"; // Ejemplo IR simple
+
+  // Enviar voltaje y porcentaje
+  const float maxReachableVoltage = 7.4f; // Ejemplo: batería Li-Ion 2S
+  int porcentajeBateria = constrain((actualVoltage / maxReachableVoltage) * 100.0f, 0, 100);
+  doc["voltaje"] = actualVoltage;
+  doc["bateria"] = porcentajeBateria;
+
+  // Enviar orientación como N, E, S, O
+  float heading = atan2((float)(rawY - offsetY), (float)(rawX - offsetX));
+  heading = heading * 180 / PI + DECLINATION_ANGLE;
+  if (heading < 0) heading += 360;
+  if (heading > 360) heading -= 360;
+
+  const char* dir;
+  if (heading >= 315 || heading < 45) dir = "N";
+  else if (heading >= 45 && heading < 135) dir = "E";
+  else if (heading >= 135 && heading < 225) dir = "S";
+  else dir = "O";
+
+  doc["orientacion"] = dir;
+
+  // Detección de color por frecuencia más baja
+  int minFrec = min(Rojo_Frec, min(Verde_Frec, Azul_Frec));
+  const char* colorNombre = "Desconocido";
+  const char* rgbColor = "rgb(255,255,255)";
+  if (minFrec == Rojo_Frec) {
+    colorNombre = "Rojo";
+    rgbColor = "rgb(255,0,0)";
+  } else if (minFrec == Verde_Frec) {
+    colorNombre = "Verde";
+    rgbColor = "rgb(0,255,0)";
+  } else if (minFrec == Azul_Frec) {
+    colorNombre = "Azul";
+    rgbColor = "rgb(0,0,255)";
+  }
+
+  doc["colorNombre"] = colorNombre;
+  doc["colorRGB"] = rgbColor;
 
   String output;
   serializeJson(doc, output);

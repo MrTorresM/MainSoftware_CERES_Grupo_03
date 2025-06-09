@@ -185,76 +185,68 @@ container.addEventListener('mouseleave', () => {
       '<i class="bi bi-broadcast-pin"></i> ESP32 Connected';
   });
 
-  socket.addEventListener('message', (event) => {
-    try {
-      const data = JSON.parse(event.data);
+socket.addEventListener('message', (event) => {
+  try {
+    const data = JSON.parse(event.data);
 
-      if (data.voltaje !== undefined) {
-        const batteryLevel = Math.min(Math.max(data.voltaje * 10, 0), 100);
-        const status = batteryLevel > 90 ? 'Batería óptima' : batteryLevel < 20 ? 'Nivel bajo' : 'Nivel medio';
-        const color = batteryLevel > 50 ? '#4caf50' : batteryLevel > 20 ? '#ff9800' : '#f44336';
-        const batteryLevelElement = document.querySelector('[data-sensor="voltaje"] .battery-level');
-        const batteryInfoElement = document.querySelector('[data-sensor="voltaje"] .battery-info');
+    if (data.bateria !== undefined) {
+      const batteryLevel = Math.min(Math.max(data.bateria, 0), 100);
+      const status = batteryLevel > 90 ? 'Batería óptima' : batteryLevel < 20 ? 'Nivel bajo' : 'Nivel medio';
+      const color = batteryLevel > 50 ? '#4caf50' : batteryLevel > 20 ? '#ff9800' : '#f44336';
 
-        if (batteryLevelElement && batteryInfoElement) {
-          batteryLevelElement.style.width = `${batteryLevel}%`;
-          batteryLevelElement.style.backgroundColor = color;
-          batteryInfoElement.innerHTML = `<strong>${batteryLevel}%</strong><br><small>${status}</small>`;
-        }
+      const batteryLevelElement = document.querySelector('[data-sensor="voltaje"] .battery-level');
+      const batteryInfoElement = document.querySelector('[data-sensor="voltaje"] .battery-info');
+
+      if (batteryLevelElement && batteryInfoElement) {
+        batteryLevelElement.style.height = `${batteryLevel}%`;
+        batteryLevelElement.style.backgroundColor = color;
+        batteryInfoElement.innerHTML = `<strong>${batteryLevel}%</strong><br><small>${status}</small>`;
       }
-
-      if (data.orientacion !== undefined) {
-        const dir = data.orientacion;
-        const angleMap = { N: 0, E: 90, S: 180, O: 270 };
-        const angle = angleMap[dir] ?? 0;
-
-        const needle = document.querySelector('.nav-needle');
-        if (needle) needle.style.transform = `rotate(${angle}deg)`;
-
-        const readout = document.getElementById('nav-direction-text');
-        if (readout) readout.textContent = dir;
-
-        // Actualiza rotación destino si no está en control manual
-        if (!useManualControl) {
-          targetYRotation = THREE.MathUtils.degToRad(angle);
-        }
-      }
-
-      if (data.obstaculos !== undefined) {
-        const ir = data.obstaculos.ir;
-        const us = data.obstaculos.us;
-        const obstacleDataElement = document.querySelector('[data-sensor="obstaculos"] .obstacle-data');
-
-        if (obstacleDataElement) {
-          obstacleDataElement.innerHTML = `IR: ${ir}<br>US: ${us} cm`;
-        }
-        updateRadar(us);
-      }
-
-      if (data.color !== undefined) {
-        const colorMap = {
-          'Rojo': 'rgb(255, 0, 0)',
-          'Verde': 'rgb(0, 255, 0)',
-          'Azul': 'rgb(0, 0, 255)',
-          'Blanco': 'rgb(255, 255, 255)',
-          'Negro': 'rgb(0, 0, 0)'
-        };
-
-        const rgb = colorMap[data.color] || 'rgb(255, 255, 255)';
-        const colorSphere = document.querySelector('[data-sensor="color"] .color-sphere');
-        const colorInfoText = document.querySelector('[data-sensor="color"] .color-info-text');
-
-        if (colorSphere && colorInfoText) {
-          colorSphere.style.background = rgb;
-          colorSphere.style.boxShadow = `0 0 20px ${rgb}`;
-          colorInfoText.innerHTML = `<p><strong>${data.color}</strong></p><p>${rgb}</p>`;
-        }
-      }
-
-    } catch (err) {
-      console.error("❌ Error al procesar datos del WebSocket:", err);
     }
-  });
+
+    if (data.orientacion !== undefined) {
+      const dir = data.orientacion;
+      const angleMap = { N: 0, E: 90, S: 180, O: 270 };
+      const angle = angleMap[dir] ?? 0;
+
+      const needle = document.querySelector('.nav-needle');
+      if (needle) needle.style.transform = `rotate(${angle}deg)`;
+
+      const readout = document.getElementById('nav-direction-text');
+      if (readout) readout.textContent = dir;
+
+      if (!useManualControl) {
+        targetYRotation = THREE.MathUtils.degToRad(angle);
+      }
+    }
+
+    if (data.obstaculos !== undefined) {
+      const ir = data.obstaculos.ir;
+      const us = data.obstaculos.us;
+      const obstacleDataElement = document.querySelector('[data-sensor="obstaculos"] .obstacle-data');
+
+      if (obstacleDataElement) {
+        obstacleDataElement.innerHTML = `IR: ${ir}<br>US: ${us} cm`;
+      }
+      updateRadar(us);
+    }
+
+    if (data.colorNombre && data.colorRGB) {
+      const colorSphere = document.querySelector('[data-sensor="color"] .color-sphere');
+      const colorInfoText = document.querySelector('[data-sensor="color"] .color-info-text');
+
+      if (colorSphere && colorInfoText) {
+        colorSphere.style.background = data.colorRGB;
+        colorSphere.style.boxShadow = `0 0 20px ${data.colorRGB}`;
+        colorInfoText.innerHTML = `<p><strong>${data.colorNombre}</strong></p><p>${data.colorRGB}</p>`;
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Error al procesar datos del WebSocket:", err);
+  }
+});
+
 
   socket.addEventListener('close', () => {
     console.warn('⚠️ Conexión cerrada con el ESP32');
