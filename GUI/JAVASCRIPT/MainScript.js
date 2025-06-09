@@ -177,7 +177,10 @@ container.addEventListener('mouseleave', () => {
 });
 
   // WebSocket para recibir datos del MPU y otros sensores
-  const socket = new WebSocket('ws://<IP_DEL_ESP32>:81');
+  const socket = new WebSocket('ws://172.20.10.2:81');
+  
+  //python -m http.server 8000
+  //http://localhost:8000/GUI/HTML/MainHUD.html
 
   socket.addEventListener('open', () => {
     console.log('🔌 Conectado al WebSocket de ESP32');
