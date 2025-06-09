@@ -209,8 +209,9 @@ socket.addEventListener('message', (event) => {
 
     if (data.orientacion !== undefined) {
       const dir = data.orientacion;
-      const angleMap = { N: 0, E: 90, S: 180, O: 270 };
-      const angle = angleMap[dir] ?? 0;
+      //const angleMap = { N: 0, E: 90, S: 180, O: 270 };
+      //const angle = angleMap[dir] ?? 0;
+      const angle = dir;
 
       const needle = document.querySelector('.nav-needle');
       if (needle) needle.style.transform = `rotate(${angle}deg)`;
@@ -261,27 +262,30 @@ socket.addEventListener('message', (event) => {
 
   // Radar visual
   function updateRadar(usDistance) {
-    const radar = document.getElementById('radar-scope');
-    if (!radar) return;
+  const radar = document.getElementById('radar-scope');
+  if (!radar) return;
 
-    radar.querySelectorAll('.radar-object').forEach(o => o.remove());
+  // Limpiamos puntos anteriores
+  radar.querySelectorAll('.radar-object').forEach(o => o.remove());
 
-    const maxDistance = 100;
-    const radius = radar.offsetWidth / 2;
-    const clamped = Math.min(usDistance, maxDistance);
-    const normalized = clamped / maxDistance;
+  const maxDistance = 100;               // distancia máxima mapeada
+  const radius = radar.offsetWidth / 2;  // radio en píxeles
+  const clamped = Math.min(Math.max(usDistance, 0), maxDistance);
+  const normalized = clamped / maxDistance;
+  const r = radius * normalized;         // distancia en píxeles desde el centro
 
-    const angle = Math.random() * 2 * Math.PI;
-    const r = radius * normalized;
+  // Calculamos posición: siempre sobre el eje vertical positivo (hacia arriba)
+  const centerX = radius;
+  const centerY = radius;
+  const x = centerX;
+  const y = centerY - r;  // restamos r para subir desde el centro
 
-    const x = radius + r * Math.cos(angle);
-    const y = radius + r * Math.sin(angle);
+  const dot = document.createElement('div');
+  dot.className = 'radar-object';
+  dot.style.left = `${x}px`;
+  dot.style.top  = `${y}px`;
 
-    const dot = document.createElement('div');
-    dot.className = 'radar-object';
-    dot.style.left = `${x}px`;
-    dot.style.top = `${y}px`;
+  radar.appendChild(dot);
+}
 
-    radar.appendChild(dot);
-  }
 });

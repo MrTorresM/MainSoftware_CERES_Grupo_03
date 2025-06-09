@@ -197,11 +197,13 @@ body, .main-screen {
   width: 4px;
   height: 80px;
   background: linear-gradient(to top, #bb86fc, #ffffff);
-  transform-origin: bottom center;
+  transform-origin: 50% 50%;;
   transform: rotate(0deg);
   transition: transform 0.6s ease-in-out;
   z-index: 10;
 }
+
+
 
 .nav-center-dot {
   position: absolute;
