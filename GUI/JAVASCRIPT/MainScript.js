@@ -261,31 +261,50 @@ socket.addEventListener('message', (event) => {
   socket.addEventListener('error', (err) => console.error('❌ Error en WebSocket:', err));
 
   // Radar visual
-  function updateRadar(usDistance) {
+let sweepX = 0;
+let sweepDirection = 1;
+const maxRadarDistance = 50; // cm
+const radarWidth = 200;      // px
+const radarHeight = 300;     // px
+
+function updateRadar(usDistance) {
   const radar = document.getElementById('radar-scope');
   if (!radar) return;
 
-  // Limpiamos puntos anteriores
-  radar.querySelectorAll('.radar-object').forEach(o => o.remove());
+  // Crear o mover la línea de barrido
+  let sweepLine = radar.querySelector('.radar-sweep-line');
+  if (!sweepLine) {
+    sweepLine = document.createElement('div');
+    sweepLine.className = 'radar-sweep-line';
+    radar.appendChild(sweepLine);
+  }
 
-  const maxDistance = 100;               // distancia máxima mapeada
-  const radius = radar.offsetWidth / 2;  // radio en píxeles
-  const clamped = Math.min(Math.max(usDistance, 0), maxDistance);
-  const normalized = clamped / maxDistance;
-  const r = radius * normalized;         // distancia en píxeles desde el centro
+  // Actualiza posición horizontal
+  sweepX += 4 * sweepDirection;
+  if (sweepX >= radarWidth || sweepX <= 0) {
+    sweepDirection *= -1;
+  }
 
-  // Calculamos posición: siempre sobre el eje vertical positivo (hacia arriba)
-  const centerX = radius;
-  const centerY = radius;
-  const x = centerX;
-  const y = centerY - r;  // restamos r para subir desde el centro
+  sweepLine.style.left = `${sweepX}px`;
 
-  const dot = document.createElement('div');
-  dot.className = 'radar-object';
-  dot.style.left = `${x}px`;
-  dot.style.top  = `${y}px`;
+  // Solo si la distancia es válida
+  if (usDistance > 0 && usDistance <= maxRadarDistance) {
+    // Convertimos distancia a posición Y (invertida, 0cm = abajo)
+    const clamped = Math.min(usDistance, maxRadarDistance);
+    const normalized = clamped / maxRadarDistance;
+    const y = radarHeight - normalized * radarHeight;
 
-  radar.appendChild(dot);
+    const dot = document.createElement('div');
+    dot.className = 'radar-object-rect';
+    dot.style.left = `${sweepX}px`;
+    dot.style.top = `${y}px`;
+    radar.appendChild(dot);
+
+    // Elimina el punto después de 1 segundo
+    setTimeout(() => {
+      dot.remove();
+    }, 1000);
+  }
 }
 
 });
