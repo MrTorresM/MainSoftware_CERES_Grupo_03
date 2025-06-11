@@ -18,3 +18,9 @@ tsParticles.load("particles-js", {
     opacity: 0
   }
 });
+
+function salir() {
+  // Redirige a la pantalla de cierre y luego ejecuta el cierre del servidor
+  window.location.href = "shutDownScene.html";
+
+}
