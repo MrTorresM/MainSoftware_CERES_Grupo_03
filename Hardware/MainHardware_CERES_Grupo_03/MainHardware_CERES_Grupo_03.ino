@@ -49,7 +49,8 @@ int   readIndex = 0;
 long  total     = 0;
 float average   = 0.0f;
 float actualVoltage = 0.0f;
-float maxvoltage = 7.4;
+float maxvoltage = 8.4; //100%
+float minvoltage = 6.4; //0%
 
 // ===== Magnetómetro HMC5883L/HMC5983 (I²C) =====
 #define HMC_ADDR        0x1E
@@ -311,7 +312,10 @@ void sendSensorData() {
   float distanceCM = (dur == 0) ? -1.0f : dur * 0.0343f / 2.0f;
 
   // Voltaje y porcentaje
-  int porcentajeBateria = constrain((actualVoltage / maxvoltage) * 100.0f, 0, 100);
+  int porcentajeBateria = constrain((actualVoltage - minvoltage / maxvoltage - minvoltage) * 100.0f, 0, 100);
+
+  if (actualVoltage <= minvoltage){porcentajeBateria = 0;}
+  else if (actualVoltage >= maxvoltage){porcentajeBateria = 100;}
 
   StaticJsonDocument<256> doc;
   JsonObject obstaculos = doc.createNestedObject("obstaculos");
