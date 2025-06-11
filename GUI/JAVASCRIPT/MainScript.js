@@ -260,8 +260,7 @@ socket.addEventListener('message', (event) => {
 
   socket.addEventListener('error', (err) => console.error('❌ Error en WebSocket:', err));
 
-  // Radar visual
-let sweepX = 0;
+ let sweepX = 0;
 let sweepDirection = 1;
 const maxRadarDistance = 50; // cm
 const radarWidth = 200;      // px
@@ -279,32 +278,36 @@ function updateRadar(usDistance) {
     radar.appendChild(sweepLine);
   }
 
-  // Actualiza posición horizontal
-  sweepX += 4 * sweepDirection;
+  // Aumentar velocidad del barrido (más fluido y rápido)
+  sweepX += 10 * sweepDirection;
   if (sweepX >= radarWidth || sweepX <= 0) {
     sweepDirection *= -1;
   }
 
   sweepLine.style.left = `${sweepX}px`;
 
-  // Solo si la distancia es válida
-  if (usDistance > 0 && usDistance <= maxRadarDistance) {
-    // Convertimos distancia a posición Y (invertida, 0cm = abajo)
-    const clamped = Math.min(usDistance, maxRadarDistance);
-    const normalized = clamped / maxRadarDistance;
-    const y = radarHeight - normalized * radarHeight;
+  // Crear punto SOLO si la línea de barrido pasa por el centro horizontal (rover)
+  const centerX = radarWidth / 2;
+  const threshold = 5; // margen de error para activar el punto solo cuando barrido está "cerca" del centro
 
-    const dot = document.createElement('div');
-    dot.className = 'radar-object-rect';
-    dot.style.left = `${sweepX}px`;
-    dot.style.top = `${y}px`;
-    radar.appendChild(dot);
+  if (Math.abs(sweepX - centerX) < threshold) {
+    if (usDistance > 0 && usDistance <= maxRadarDistance) {
+      const clamped = Math.min(usDistance, maxRadarDistance);
+      const normalized = clamped / maxRadarDistance;
+      const y = radarHeight - normalized * radarHeight;
 
-    // Elimina el punto después de 1 segundo
-    setTimeout(() => {
-      dot.remove();
-    }, 1000);
+      const dot = document.createElement('div');
+      dot.className = 'radar-object-rect';
+      dot.style.left = `${centerX}px`; // SIEMPRE en el eje del rover
+      dot.style.top = `${y}px`;
+      radar.appendChild(dot);
+
+      setTimeout(() => {
+        dot.remove();
+      }, 1000);
+    }
   }
 }
+
 
 });
