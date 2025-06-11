@@ -260,8 +260,6 @@ socket.addEventListener('message', (event) => {
 
   socket.addEventListener('error', (err) => console.error('❌ Error en WebSocket:', err));
 
- let sweepX = 0;
-let sweepDirection = 1;
 const maxRadarDistance = 50; // cm
 const radarWidth = 200;      // px
 const radarHeight = 300;     // px
@@ -270,44 +268,24 @@ function updateRadar(usDistance) {
   const radar = document.getElementById('radar-scope');
   if (!radar) return;
 
-  // Crear o mover la línea de barrido
-  let sweepLine = radar.querySelector('.radar-sweep-line');
-  if (!sweepLine) {
-    sweepLine = document.createElement('div');
-    sweepLine.className = 'radar-sweep-line';
-    radar.appendChild(sweepLine);
-  }
+  // Elimina cualquier punto previo
+  radar.querySelectorAll('.radar-object-rect').forEach(el => el.remove());
 
-  // Aumentar velocidad del barrido (más fluido y rápido)
-  sweepX += 10 * sweepDirection;
-  if (sweepX >= radarWidth || sweepX <= 0) {
-    sweepDirection *= -1;
-  }
+  // Si la distancia es válida, muestra el punto
+  if (usDistance > 0 && usDistance <= maxRadarDistance) {
+    const clamped = Math.min(usDistance, maxRadarDistance);
+    const normalized = clamped / maxRadarDistance;
+    const y = radarHeight - normalized * radarHeight;
+    const centerX = radarWidth / 2;
 
-  sweepLine.style.left = `${sweepX}px`;
-
-  // Crear punto SOLO si la línea de barrido pasa por el centro horizontal (rover)
-  const centerX = radarWidth / 2;
-  const threshold = 5; // margen de error para activar el punto solo cuando barrido está "cerca" del centro
-
-  if (Math.abs(sweepX - centerX) < threshold) {
-    if (usDistance > 0 && usDistance <= maxRadarDistance) {
-      const clamped = Math.min(usDistance, maxRadarDistance);
-      const normalized = clamped / maxRadarDistance;
-      const y = radarHeight - normalized * radarHeight;
-
-      const dot = document.createElement('div');
-      dot.className = 'radar-object-rect';
-      dot.style.left = `${centerX}px`; // SIEMPRE en el eje del rover
-      dot.style.top = `${y}px`;
-      radar.appendChild(dot);
-
-      setTimeout(() => {
-        dot.remove();
-      }, 1000);
-    }
+    const dot = document.createElement('div');
+    dot.className = 'radar-object-rect';
+    dot.style.left = `${centerX}px`;
+    dot.style.top = `${y}px`;
+    radar.appendChild(dot);
   }
 }
+
 
 
 });
