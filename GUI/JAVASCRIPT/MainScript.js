@@ -259,32 +259,38 @@ socket.addEventListener('message', (event) => {
   });
 
   socket.addEventListener('error', (err) => console.error('❌ Error en WebSocket:', err));
-
-const maxRadarDistance = 50; // cm
-const radarWidth = 200;      // px
-const radarHeight = 300;     // px
+// al principio del archivo, fuera de updateRadar:
+const maxRadarDistance = 50;  // cm
 
 function updateRadar(usDistance) {
   const radar = document.getElementById('radar-scope');
   if (!radar) return;
 
-  // Elimina cualquier punto previo
-  radar.querySelectorAll('.radar-object-rect').forEach(el => el.remove());
+  // 1) Limpiar puntos anteriores
+  radar.querySelectorAll('.radar-object-rect')
+       .forEach(el => el.remove());
 
-  // Si la distancia es válida, muestra el punto
-  if (usDistance > 0 && usDistance <= maxRadarDistance) {
-    const clamped = Math.min(usDistance, maxRadarDistance);
-    const normalized = clamped / maxRadarDistance;
-    const y = radarHeight - normalized * radarHeight;
-    const centerX = radarWidth / 2;
+  // 2) Sólo dibujar si está en [0, maxRadarDistance]
+  if (usDistance < 0 || usDistance > maxRadarDistance) return;
 
-    const dot = document.createElement('div');
-    dot.className = 'radar-object-rect';
-    dot.style.left = `${centerX}px`;
-    dot.style.top = `${y}px`;
-    radar.appendChild(dot);
-  }
+  // 3) Obtener tamaño real del contenedor
+  const { width: radarWidth, height: radarHeight } = radar.getBoundingClientRect();
+
+  // 4) Normalizar directamente 0→0, 50→1
+  const normalized = usDistance / maxRadarDistance;
+
+  // 5) Mapear 0→base (y=altura) y max→tope (y=0)
+  const y = radarHeight - normalized * radarHeight;
+  const x = radarWidth / 2;
+
+  // 6) Crear y posicionar el punto (se centra con CSS translate)
+  const dot = document.createElement('div');
+  dot.className = 'radar-object-rect';
+  dot.style.left = `${x}px`;
+  dot.style.top  = `${y}px`;
+  radar.appendChild(dot);
 }
+
 
 
 
