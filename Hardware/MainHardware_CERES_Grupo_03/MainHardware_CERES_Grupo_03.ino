@@ -170,20 +170,20 @@ void pararMotores() {
   digitalWrite(BIN2, LOW);
 }
 void motoresAdelante() {
-  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, HIGH);
   digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
 }
 void motoresAtras() {
-  digitalWrite(AIN1, LOW); digitalWrite(AIN2, HIGH);
+  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
   digitalWrite(BIN1, LOW); digitalWrite(BIN2, HIGH);
 }
 void motoresGirarDerecha() {
   digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
-  digitalWrite(BIN1, LOW);  digitalWrite(BIN2, HIGH);
+  digitalWrite(BIN1, HIGH);  digitalWrite(BIN2, LOW);
 }
 void motoresGirarIzquierda() {
   digitalWrite(AIN1, LOW);  digitalWrite(AIN2, HIGH);
-  digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, HIGH);
 }
 
 // ===== Funciones de control de servos =====
